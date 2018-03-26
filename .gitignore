@@ -9,6 +9,10 @@ __pycache__/
 *.csv
 *.pdf
 
+# Data Folder
+data/*
+!data/readme
+
 # Jupyter metadata
 .ipynb_checkpoints/
 
