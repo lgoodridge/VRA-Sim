@@ -10,7 +10,7 @@ citing: http://blog.ethanrosenthal.com/2015/11/02/intro-to-collaborative-filteri
 
 def import_data():
     col = ['user_id', 'item_id', 'rating', 'timestamp']
-    data = pd.read_csv('ml-100k/u.data', sep='\t', names=col)
+    data = pd.read_csv('../data/ml-100k/u.data', sep='\t', names=col)
     data.head()
     return data
 

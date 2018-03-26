@@ -7,7 +7,7 @@ import scipy.sparse as sp
 from scipy.sparse.linalg import svds
 
 header = ['user_id', 'item_id', 'rating', 'timestamp']
-df = pd.read_csv('ml-100k/u.data', sep='\t', names=header)
+df = pd.read_csv('../data/ml-100k/u.data', sep='\t', names=header)
 
 def rmse(prediction, ground_truth):
     prediction = prediction[ground_truth.nonzero()].flatten()
