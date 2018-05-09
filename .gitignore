@@ -13,6 +13,9 @@ __pycache__/
 data/*
 !data/readme
 
+# Results Folder
+batch/results/*
+
 # Jupyter metadata
 .ipynb_checkpoints/
 
