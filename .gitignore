@@ -15,9 +15,9 @@ data/*
 
 # Batch logs and results folders
 batch/master_logs/*
-!batch/master_logs/readme
+!batch/master_logs/readme.txt
 batch/results/*
-!batch/results/readme
+!batch/results/readme.txt
 
 # Jupyter metadata
 .ipynb_checkpoints/
