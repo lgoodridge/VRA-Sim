@@ -13,7 +13,7 @@ master_log = open(os.path.join("master_logs", log_name), "w")
 print("-- START_LOG --", file=master_log)
 
 test_idx = 0
-NUM_TESTS = 504
+NUM_TESTS = 252
 
 def run_test(user_polarization, film_polarization, model, always_watch,
         rewatch_rec_mult, rewatch_view_mult, anti_bubble_sys,

@@ -429,7 +429,8 @@ def get_predicted_ratings(actual_ratings):
     elif RECOMMENDER_MODEL == 'random':
         random_ratings = pd.DataFrame(ratings).replace(0, np.nan)
         random_idx = random_ratings.isnull()
-        random_ratings[random_idx] = np.random.uniform(1, 5, (6040, 3883))
+        random_ratings[random_idx] = np.random.uniform(1, 5,
+                (users.shape[0], films.shape[0]))
         return random_ratings.values
 
 def get_recommendations(actual_ratings, predicted_ratings, userID, num_recommendations=NUM_RECS):
