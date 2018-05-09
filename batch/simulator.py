@@ -150,6 +150,19 @@ max_abs_compatibility = None
 
 
 ########################################
+#           CUSTOM EXCEPTIONS
+########################################
+
+class TestAlreadyCompletedException(Exception):
+    def __init__(self, message):
+        Exception.__init__(self, message)
+
+class OutOfFilmsException(Exception):
+    def __init__(self, message):
+        Exception.__init__(self, message)
+
+
+########################################
 #          SIMULATOR FUNCTIONS
 ########################################
 
@@ -184,7 +197,11 @@ def validate_parameters():
     # Get the save directory using the test name + create it and the log file
     SAVE_DIR = os.path.join("results", TEST_NAME)
     if os.path.exists(SAVE_DIR):
-        raise ValueError("Directory where results would go (%s) already exists." % (SAVE_DIR))
+        if os.path.exists(os.path.join(SAVE_DIR, "combined.png")):
+            raise TestAlreadyCompletedException(("This test (%s) has "
+                    " already been completed. Aborting.") % TEST_NAME)
+        else:
+            shutil.rmtree(SAVE_DIR)
     os.mkdir(SAVE_DIR)
     LOG_FILE = open(os.path.join(SAVE_DIR, "log.txt"), "w")
 
@@ -506,7 +523,7 @@ def step_simulation(actual_ratings, predicted_ratings, rec_genre_counts,
         (recommended_filmIDs, new_genre_counts) = \
                 get_recommendations(new_ratings, predicted_ratings, userID)
         if recommended_filmIDs is None:
-            raise ValueError("Ran out of films.")
+            raise OutOfFilmsException("Ran out of films to recommend.")
         new_distribution_matrix.append(new_genre_counts)
         all_recommended_filmIDs[userID] = recommended_filmIDs
 
@@ -601,8 +618,12 @@ def run_simulation():
     log_write("\nStarting simulation...")
     for step in range(MAX_STEPS):
         predictions = get_predicted_ratings(ratings)
-        ratings, rec_distribution, num_changes, recommended_filmIDs, user_satisfaction = \
-                step_simulation(ratings, predictions, rec_distribution, user_satisfaction)
+        try:
+            ratings, rec_distribution, num_changes, recommended_filmIDs, user_satisfaction = \
+                    step_simulation(ratings, predictions, rec_distribution, user_satisfaction)
+        except OutOfFilmsException:
+            log_write("Ran out of films to recommend.")
+            break
         num_changes_over_time.append(num_changes)
         recommended_filmIDs_over_time.append(recommended_filmIDs)
         user_satisfaction_over_time.append(user_satisfaction)

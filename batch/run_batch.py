@@ -12,6 +12,9 @@ log_name = "log-" + datetime.datetime.now().strftime("%m-%d-%H%M%S.txt")
 master_log = open(os.path.join("master_logs", log_name), "w")
 print("-- START_LOG --", file=master_log)
 
+test_idx = 0
+NUM_TESTS = 504
+
 def run_test(user_polarization, film_polarization, model, always_watch,
         rewatch_rec_mult, rewatch_view_mult, anti_bubble_sys,
         recommender_randomness, user_discovery_factor):
@@ -20,7 +23,7 @@ def run_test(user_polarization, film_polarization, model, always_watch,
     """
     test_name = "test-up%1.1f-fp%1.1f-%s-%s-%s-rrm%1.1f-rvm%1.1f-rr%1.1f-udf%1.1f" % (user_polarization, film_polarization, model, anti_bubble_sys, str(always_watch).lower(), rewatch_rec_mult, rewatch_view_mult, recommender_randomness, user_discovery_factor)
     print("Running %s..." + test_name, file=master_log)
-    print("Running (%d of %d) %s... " % (test_idx, 504, test_name), end="")
+    print("Running (%d of %d) %s... " % (test_idx, NUM_TESTS, test_name), end="")
     master_log.flush()
     sys.stdout.flush()
 
@@ -40,12 +43,14 @@ def run_test(user_polarization, film_polarization, model, always_watch,
     try:
         simulator.run_simulation()
         print("Succeeded")
+    except simulator.TestAlreadyCompletedException as e:
+        print("Previously Completed", file=master_log)
+        print("Previously Completed")
     except Exception as e:
         print("FAILED: %s" % str(e), file=master_log)
         print("FAILED!\n%s" % str(e))
 
 # Run a simulation for all combinations of the parameters we want to test
-test_idx = 0
 for user_polarization in [0.5]:
     for film_polarization in [1.0]:
         for model in ['svd', 'popularity', 'random']:
