@@ -22,7 +22,7 @@ def run_test(user_polarization, film_polarization, model, always_watch,
     Runs a test with the provided simulator parameters.
     """
     test_name = "test-up%1.1f-fp%1.1f-%s-%s-%s-rrm%1.1f-rvm%1.1f-rr%1.1f-udf%1.1f" % (user_polarization, film_polarization, model, anti_bubble_sys, str(always_watch).lower(), rewatch_rec_mult, rewatch_view_mult, recommender_randomness, user_discovery_factor)
-    print("Running %s..." + test_name, file=master_log)
+    print("Running %s..." % test_name, file=master_log)
     print("Running (%d of %d) %s... " % (test_idx, NUM_TESTS, test_name), end="")
     master_log.flush()
     sys.stdout.flush()
