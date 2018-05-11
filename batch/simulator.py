@@ -580,10 +580,12 @@ def run_simulation():
     log_write("Generating users and films...")
     users = generate_users(NUM_USERS)
     films = generate_films(NUM_FILMS)
-    log_write('Distribution of Films ', 'Extreme Type 1: ', films[0], 'Mild Type 2: ', 
-        films[1], 'Neutral: ', films[2], 'Mild Type 2: ', films[3], 'Extreme Type 2: ', films[4])
-    log_write('Distribution of Users ', 'Extreme Type 1: ', users[0], 'Mild Type 2: ', 
-        users[1], 'Neutral: ', users[2], 'Mild Type 2: ', users[3], 'Extreme Type 2: ', users[4])
+    num_film = 'Distribution of Films ' + 'Extreme Type 1: ' + str(films[0]) + 'Mild Type 2: ' + 
+        str(films[1]) + 'Neutral: ' + str(films[2])  + 'Mild Type 2: ' + str(films[3]) + 'Extreme Type 2: ' + str(films[4])
+    num_user = 'Distribution of Users ' + 'Extreme Type 1: ' + str(users[0]) + 'Mild Type 2: ' + 
+        str(users[1]) + 'Neutral: ' + str(users[2])  + 'Mild Type 2: ' + str(users[3]) + 'Extreme Type 2: ' + str(users[4])
+    log_write(num_film)
+    log_write(num_user)
 
     # Get the mean and max absolute compatibilities
     log_write("Determining the mean and max absolute capabilities...")
