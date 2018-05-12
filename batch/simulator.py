@@ -578,8 +578,8 @@ def run_simulation():
 
     # Generate the users and films
     log_write("Generating users and films...")
-    users = generate_users(NUM_USERS)
-    films = generate_films(NUM_FILMS)
+    _,users = generate_users(NUM_USERS)
+    _,films = generate_films(NUM_FILMS)
     num_film = 'Distribution of Films ' + 'Extreme Type 1: ' + str(films[0]) + 'Mild Type 2: ' + str(films[1]) + 'Neutral: ' + str(films[2])  + 'Mild Type 2: ' + str(films[3]) + 'Extreme Type 2: ' + str(films[4])
     num_user = 'Distribution of Users ' + 'Extreme Type 1: ' + str(users[0]) + 'Mild Type 2: ' + str(users[1]) + 'Neutral: ' + str(users[2])  + 'Mild Type 2: ' + str(users[3]) + 'Extreme Type 2: ' + str(users[4])
     log_write(num_film)
