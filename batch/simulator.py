@@ -326,7 +326,6 @@ def get_categorical_distribution(categories):
     results = []
     for category in range(-2, 3):
         num_of_category = len([x for x in categories if x == category])
-        category_name = CATEGORY_NAMES[category + 2]
         results.append(num_of_category)
     return results
 
@@ -580,8 +579,9 @@ def step_simulation(actual_ratings, predicted_ratings, rec_genre_counts,
         ideological_isolation_vector[userID] = np.mean([1 - (np.sum(np.abs(
                 users[userID][:NUM_GENRES] - films[filmID][:NUM_GENRES])))
                 for filmID in recommended_filmIDs])
-        categorical_disparity_vector[userID] = np.std([film_categories[filmID]
-                for filmID in recommended_filmIDs]) / 2.0
+        categorical_disparity_vector[userID] = np.std(
+                get_categorical_distribution([film_categories[filmID]
+                for filmID in recommended_filmIDs])) / 2.0
 
     return (new_ratings, new_distribution_matrix, num_distribution_changes,
             all_recommended_filmIDs, user_satisfaction_vector,

@@ -19,6 +19,7 @@ batch/master_logs/*
 batch/results/*
 !batch/results/readme.txt
 batch/filtered_results
+batch/batch_results
 
 # Jupyter metadata
 .ipynb_checkpoints/
