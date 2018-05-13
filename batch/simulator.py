@@ -23,8 +23,8 @@ SAVE_DIR = ""
 LOG_FILE = None
 
 # Total number of films and users
-NUM_USERS = 1000 # 6040
-NUM_FILMS = 700  # 3883
+NUM_USERS = 2000 # 6040
+NUM_FILMS = 1300  # 3883
 
 # Total number of film genres
 NUM_GENRES = 2
@@ -36,11 +36,14 @@ MAX_RATING = 5
 # Use higher values with higher NUM_GENRES values
 # Reasonable values are probably b/w 0.1 and 10
 USER_POLARIZATION_STRENGTH = 0.5
-FILM_POLARIZATION_STRENGTH = 1
+FILM_POLARIZATION_STRENGTH = 0.5
 
 # A film is considered "polarized" if its highest
 # film genre value is above this threshold
 POLARIZED_FILM_THRESHOLD = 0.7
+
+# Names for each of the user / film categories
+CATEGORY_NAMES = ["Radical 1", "Mild 1", "Neutral", "Mild 2", "Radical 2"]
 
 # Percentage of films users will initially watch
 INITIAL_VIEWING_RATE = 0.05
@@ -131,7 +134,7 @@ REWATCH_RECOMMENDATION_MULTIPLIER = 0.5
 REWATCH_VIEW_MULTIPLIER = 0.5
 
 # The maximum steps to run the simulation for
-MAX_STEPS = 200
+MAX_STEPS = 100
 
 # The maximum number of distribution changes allowed
 # within a simulator step before its considered "converged"
@@ -144,6 +147,9 @@ CHANGE_THRESHOLD = 0
 
 users = None
 films = None
+
+user_categories = None
+film_categories = None
 
 mean_compatibility = None
 max_abs_compatibility = None
@@ -312,6 +318,17 @@ def film_users_cat(film_or_user):
         else:
             cat = 2
     return cat
+
+def get_categories(users_or_films):
+    return [film_users_cat(x) for x in users_or_films]
+
+def get_categorical_distribution(categories):
+    results = []
+    for category in range(-2, 3):
+        num_of_category = len([x for x in categories if x == category])
+        category_name = CATEGORY_NAMES[category + 2]
+        results.append(num_of_category)
+    return results
 
 def get_user_film_compatibility(userID, filmID):
     """
@@ -510,14 +527,16 @@ def step_simulation(actual_ratings, predicted_ratings, rec_genre_counts,
 
     Returns the new rating matrix, the new distribution matrix of
     recommended film genres, the # of changes in this matrix, a
-    vector of all recommended film IDs, and the user satisfaction
-    vector.
+    vector of all recommended film IDs, the user satisfaction
+    vector, and the filter bubble measurement vectors.
     """
     new_ratings = actual_ratings.copy()
     new_distribution_matrix = []
     num_distribution_changes = 0
     all_recommended_filmIDs = np.zeros([users.shape[0], NUM_RECS])
     user_satisfaction_vector = np.zeros([users.shape[0]])
+    ideological_isolation_vector = np.zeros([users.shape[0]])
+    categorical_disparity_vector = np.zeros([users.shape[0]])
 
     for userID in range(users.shape[0]):
         user = users[userID]
@@ -557,8 +576,16 @@ def step_simulation(actual_ratings, predicted_ratings, rec_genre_counts,
         user_satisfaction_vector[userID] = np.mean(user_ratings) \
                 if len(user_ratings) > 0 else prev_user_satisfaction_vector[userID]
 
+        # Determine the filter bubble vectors with this step's recommendations
+        ideological_isolation_vector[userID] = np.mean([1 - (np.sum(np.abs(
+                users[userID][:NUM_GENRES] - films[filmID][:NUM_GENRES])))
+                for filmID in recommended_filmIDs])
+        categorical_disparity_vector[userID] = np.std([film_categories[filmID]
+                for filmID in recommended_filmIDs]) / 2.0
+
     return (new_ratings, new_distribution_matrix, num_distribution_changes,
-            all_recommended_filmIDs, user_satisfaction_vector)
+            all_recommended_filmIDs, user_satisfaction_vector,
+            ideological_isolation_vector, categorical_disparity_vector)
 
 
 ########################################
@@ -569,7 +596,8 @@ def run_simulation():
     """
     Runs the simulation, saving the log and plot results.
     """
-    global users, films, mean_compatibility, max_abs_compatibility
+    global users, films, user_categories, film_categories, \
+            mean_compatibility, max_abs_compatibility
 
     # Validate the simulation parameters, then log the start of the test
     validate_parameters()
@@ -580,12 +608,11 @@ def run_simulation():
     log_write("Generating users and films...")
     users = generate_users(NUM_USERS)
     films = generate_films(NUM_FILMS)
-    _, film_dist = divide_film_users_cat(films)
-    _, user_dist = divide_film_users_cat(users)
-    num_film = 'Distribution of Films ' + 'Extreme Type 1: ' + str(film_dist[0]) + ' Mild Type 2: ' + str(film_dist[1]) + ' Neutral: ' + str(film_dist[2])  + ' Mild Type 2: ' + str(film_dist[3]) + ' Extreme Type 2: ' + str(film_dist[4])
-    num_user = 'Distribution of Users ' + 'Extreme Type 1: ' + str(user_dist[0]) + ' Mild Type 2: ' + str(user_dist[1]) + ' Neutral: ' + str(user_dist[2])  + ' Mild Type 2: ' + str(user_dist[3]) + ' Extreme Type 2: ' + str(user_dist[4])
-    log_write(num_film)
-    log_write(num_user)
+
+    # Get the user and film categories
+    log_write("Determining the user and film categories...")
+    user_categories = get_categories(users)
+    film_categories = get_categories(films)
 
     # Get the mean and max absolute compatibilities
     log_write("Determining the mean and max absolute capabilities...")
@@ -620,20 +647,27 @@ def run_simulation():
     num_changes_over_time = []
     recommended_filmIDs_over_time = []
     user_satisfaction_over_time = []
+    ideological_isolation_over_time = []
+    categorical_disparity_over_time = []
 
     # Start stepping through the simulation
     log_write("\nStarting simulation...")
     for step in range(MAX_STEPS):
         predictions = get_predicted_ratings(ratings)
         try:
-            ratings, rec_distribution, num_changes, recommended_filmIDs, user_satisfaction = \
-                    step_simulation(ratings, predictions, rec_distribution, user_satisfaction)
+            ratings, rec_distribution, num_changes, \
+                    recommended_filmIDs, user_satisfaction, \
+                    ideological_isolation, categorical_disparity = \
+                    step_simulation(ratings, predictions, rec_distribution,
+                            user_satisfaction)
         except OutOfFilmsException:
             log_write("Ran out of films to recommend.")
             break
         num_changes_over_time.append(num_changes)
         recommended_filmIDs_over_time.append(recommended_filmIDs)
         user_satisfaction_over_time.append(user_satisfaction)
+        ideological_isolation_over_time.append(ideological_isolation)
+        categorical_disparity_over_time.append(categorical_disparity)
         if step > 0 and num_changes <= CHANGE_THRESHOLD:
             log_write("Convergence!")
             break
@@ -675,6 +709,24 @@ def run_simulation():
     plt.ylabel("Average Group Satisfaction")
     plt.legend()
     plt.savefig(os.path.join(SAVE_DIR, "group_satisfaction.png"))
+    plt.close()
+
+    # Plot the average ideological isolation over time
+    log_write("Saving idealogical isolation plot...")
+    avg_ideological_isolation_over_time = [np.mean(x) for x in ideological_isolation_over_time]
+    plt.plot(avg_ideological_isolation_over_time)
+    plt.xlabel("Step")
+    plt.ylabel("Average Ideological Isolation")
+    plt.savefig(os.path.join(SAVE_DIR, "idealogical_isolation.png"))
+    plt.close()
+
+    # Plot the average categorical disparity over time
+    log_write("Saving categorical disparity plot...")
+    avg_categorical_disparity_over_time = [np.mean(x) for x in categorical_disparity_over_time]
+    plt.plot(avg_categorical_disparity_over_time)
+    plt.xlabel("Step")
+    plt.ylabel("Average Categorical Disparity")
+    plt.savefig(os.path.join(SAVE_DIR, "categorical_disparity.png"))
     plt.close()
 
     # Get the flattened recommended film IDs and genres over time
@@ -756,18 +808,57 @@ def run_simulation():
                 mild2 += dist
             else:
                 radical2 += dist
+
+        radical1_film = np.int_([0,0,0,0,0])
+        mild1_film = np.int_([0,0,0,0,0])
+        neutral_film = np.int_([0,0,0,0,0])
+        mild2_film = np.int_([0,0,0,0,0])
+        radical2_film = np.int_([0,0,0,0,0])
+
+        radical1_film[0] = radical1[0]
+        radical1_film[1] = mild1[0]
+        radical1_film[2] = neutral[0]
+        radical1_film[3] = mild2[0]
+        radical1_film[4] = radical2[0]
+
+        mild1_film[0] = radical1[1]
+        mild1_film[1] = mild1[1]
+        mild1_film[2] = neutral[1]
+        mild1_film[3] = mild2[1]
+        mild1_film[4] = radical2[1]
+
+        neutral_film[0] = radical1[2]
+        neutral_film[1] = mild1[2]
+        neutral_film[2] = neutral[2]
+        neutral_film[3] = mild2[2]
+        neutral_film[4] = radical2[2]
+
+        mild2_film[0] = radical1[3]
+        mild2_film[1] = mild1[3]
+        mild2_film[2] = neutral[3]
+        mild2_film[3] = mild2[3]
+        mild2_film[4] = radical2[3]
+
+        radical2_film[0] = radical1[4]
+        radical2_film[1] = mild1[4]
+        radical2_film[2] = neutral[4]
+        radical2_film[3] = mild2[4]
+        radical2_film[4] = radical2[4]
+
         N = 5
         ind = np.arange(N)  # the x locations for the groups
         width = 0.16        # the width of the bars
-        rects1 = plt.bar(ind, radical1, width, color='r')
-        rects2 = plt.bar(ind + width, mild1, width, color='y')
-        rects3 = plt.bar(ind + 2 * width, neutral, width, color='b')
-        rects4 = plt.bar(ind + 3 * width, mild2, width, color='g')
-        rects5 = plt.bar(ind + 4 * width, radical2, width, color='c')
-        # add some text for labels, title and axes ticks
+        rects1 = plt.bar(ind, radical1_film, width, color='r')
+        rects2 = plt.bar(ind + width, mild1_film, width, color='y')
+        rects3 = plt.bar(ind + 2 * width, neutral_film, width, color='b')
+        rects4 = plt.bar(ind + 3 * width, mild2_film, width, color='g')
+        rects5 = plt.bar(ind + 4 * width, radical2_film, width, color='c')
+
+        # Add some text for labels, title and axes ticks
         plt.ylabel('Number of Films Recommended')
-        plt.xticks(ind + width * 2,('Radical \n Type1', 'Mild \n Type1', 'Neutral',
-                'Mild \n Type2', 'Radical \n Type2'))
+        plt.xticks(ind + width * 2,('Radical\nType1\nUser',
+                'Mild\nType1\nUser', 'Neutral\nUser',
+                'Mild\nType2\nUser', 'Radical\nType2\nUser'))
         plt.legend((rects1[0], rects2[0], rects3[0], rects4[0],rects5[0]),
                 ('Radical Type1', 'Mild Type1', 'Neutral', 'Mild Type2', 'Radical Type2'))
 
@@ -809,14 +900,14 @@ def run_simulation():
     plt.legend()
 
     plt.subplot(325)
-    plt.plot(percent_polarized_recs_over_time)
+    plt.plot(avg_ideological_isolation_over_time)
     plt.xlabel("Step")
-    plt.ylabel("% Polarized Film Recommendations")
+    plt.ylabel("Average Ideological Isolation")
 
     plt.subplot(326)
-    plt.plot(avg_rec_film_polarity_over_time)
+    plt.plot(avg_categorical_disparity_over_time)
     plt.xlabel("Step")
-    plt.ylabel("Average Recommended Film Polarity")
+    plt.ylabel("Average Categorical Disparity")
 
     plt.tight_layout()
     plt.savefig(os.path.join(SAVE_DIR, "combined.png"))

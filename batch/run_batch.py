@@ -29,7 +29,7 @@ def run_test(user_polarization, film_polarization, model, always_watch,
 
     reload(simulator)
     simulator.TEST_NAME = test_name
-    simulator.MAX_STEPS = 200
+    simulator.MAX_STEPS = 100
     simulator.USER_POLARIZATION_STRENGTH = user_polarization
     simulator.FILM_POLARIZATION_STRENGTH = film_polarization
     simulator.RECOMMENDER_MODEL = model
@@ -52,7 +52,7 @@ def run_test(user_polarization, film_polarization, model, always_watch,
 
 # Run a simulation for all combinations of the parameters we want to test
 for user_polarization in [0.5]:
-    for film_polarization in [1.0]:
+    for film_polarization in [0.5]:
         for model in ['svd', 'popularity', 'random']:
             for always_watch in [True, False]:
                 for rewatch_rec_mult in [0.5, 1.0, 0.0]:
