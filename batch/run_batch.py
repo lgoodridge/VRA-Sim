@@ -13,7 +13,7 @@ master_log = open(os.path.join("master_logs", log_name), "w")
 print("-- START_LOG --", file=master_log)
 
 test_idx = 0
-NUM_TESTS = 252
+NUM_TESTS = 18
 
 def run_test(user_polarization, film_polarization, model, always_watch,
         rewatch_rec_mult, rewatch_view_mult, anti_bubble_sys,
@@ -39,6 +39,7 @@ def run_test(user_polarization, film_polarization, model, always_watch,
     simulator.ANTI_BUBBLE_SYSTEM = anti_bubble_sys
     simulator.RECOMMENDER_RANDOMNESS = recommender_randomness
     simulator.USER_DISCOVERY_FACTOR = user_discovery_factor
+    simulator.K_VAL = 200
 
     try:
         simulator.run_simulation()
@@ -55,12 +56,12 @@ for user_polarization in [0.5]:
     for film_polarization in [0.5]:
         for model in ['svd', 'popularity', 'random']:
             for always_watch in [True, False]:
-                for rewatch_rec_mult in [0.5, 1.0, 0.0]:
-                    possible_rvms = [0.5, 1.0, 0.0] if not always_watch else [1.0]
+                for rewatch_rec_mult in [1.0]:
+                    possible_rvms = [1.0] if not always_watch else [1.0]
                     for rewatch_view_mult in possible_rvms:
                         for anti_bubble_sys in ['none', 'random', 'discovery']:
-                            possible_rrs = [2.5, 1.0, 10.0] if anti_bubble_sys == 'random' else [0.0]
-                            possible_udfs = [0.25, 0.5, 1.0] if anti_bubble_sys == 'discovery' else [0.0]
+                            possible_rrs = [10.0] if anti_bubble_sys == 'random' else [0.0]
+                            possible_udfs = [1.0] if anti_bubble_sys == 'discovery' else [0.0]
                             for recommender_randomness in possible_rrs:
                                 for user_discovery_factor in possible_udfs:
                                     test_idx += 1

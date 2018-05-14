@@ -91,7 +91,7 @@ NUM_RECS = 5
 # take longer to compute (and give longer simulator
 # convergence times)
 # Reasonable values are probably b/w 10 and 50
-K_VAL = 50
+K_VAL = 200
 
 # Determines how much a user's compatibility with
 # the film affects the final rating. The final
@@ -409,8 +409,9 @@ def get_predicted_ratings(actual_ratings):
         mask1 = (ratings > 0) & (ratings <= 2)
         mask2 = (ratings >= 4)
         ratings = ratings.astype(float)
-        ratings[mask1] = ratings[mask1] + USER_DISCOVERY_FACTOR * np.mean(ratings)
-        ratings[mask2] = ratings[mask2] - USER_DISCOVERY_FACTOR * np.mean(ratings)
+        mean_value = np.sum(ratings) / float(np.count_nonzero(ratings))
+        ratings[mask1] = ratings[mask1] + USER_DISCOVERY_FACTOR * mean_value
+        ratings[mask2] = ratings[mask2] - USER_DISCOVERY_FACTOR * mean_value
 
     if RECOMMENDER_MODEL == 'svd':
         # Only consider non-zero ratings when calculating the mean
@@ -679,23 +680,28 @@ def run_simulation():
 
     # Plot number of distribution changes over time
     log_write("Saving distribution changes plot...")
+    plt.figure(figsize=(4, 3))
     plt.plot(num_changes_over_time)
     plt.xlabel("Step")
     plt.ylabel("# Distribution Changes")
+    plt.tight_layout()
     plt.savefig(os.path.join(SAVE_DIR, "distribution_changes.png"))
     plt.close()
 
     # Plot the average user satisfaction over time
     log_write("Saving user satisfaction plot...")
+    plt.figure(figsize=(4, 3))
     avg_user_satisfaction_over_time = [np.mean(x) for x in user_satisfaction_over_time]
     plt.plot(avg_user_satisfaction_over_time)
     plt.xlabel("Step")
     plt.ylabel("Average User Satisfaction")
+    plt.tight_layout()
     plt.savefig(os.path.join(SAVE_DIR, "user_satisfaction.png"))
     plt.close()
 
     # Plot the average group satisfaction over time
     log_write("Saving group satisfaction plot...")
+    plt.figure(figsize=(4, 3))
     user_cats = [film_users_cat(user) for user in users]
     for cat in range(-2, 3):
         group_satisfaction_over_time = [
@@ -708,83 +714,88 @@ def run_simulation():
     plt.xlabel("Step")
     plt.ylabel("Average Group Satisfaction")
     plt.legend()
+    plt.tight_layout()
     plt.savefig(os.path.join(SAVE_DIR, "group_satisfaction.png"))
     plt.close()
 
     # Plot the average ideological isolation over time
     log_write("Saving idealogical isolation plot...")
+    plt.figure(figsize=(4, 3))
     avg_ideological_isolation_over_time = [np.mean(x) for x in ideological_isolation_over_time]
     plt.plot(avg_ideological_isolation_over_time)
     plt.xlabel("Step")
     plt.ylabel("Average Ideological Isolation")
+    plt.tight_layout()
     plt.savefig(os.path.join(SAVE_DIR, "idealogical_isolation.png"))
     plt.close()
 
     # Plot the average categorical disparity over time
     log_write("Saving categorical disparity plot...")
+    plt.figure(figsize=(4, 3))
     avg_categorical_disparity_over_time = [np.mean(x) for x in categorical_disparity_over_time]
     plt.plot(avg_categorical_disparity_over_time)
     plt.xlabel("Step")
     plt.ylabel("Average Categorical Disparity")
+    plt.tight_layout()
     plt.savefig(os.path.join(SAVE_DIR, "categorical_disparity.png"))
     plt.close()
 
-    # Get the flattened recommended film IDs and genres over time
-    flattened_rec_filmIDs_over_time = np.array([x.flatten()
-            for x in recommended_filmIDs_over_time])
-    flattened_rec_film_genres_over_time = np.array([
-            [films[int(filmID)][:NUM_GENRES] for filmID in step_filmIDs]
-            for step_filmIDs in flattened_rec_filmIDs_over_time
-    ])
-
-    def get_num_polarized_recs(step_rec_film_genres):
-        is_polarized = np.apply_along_axis(lambda x: max(x) > POLARIZED_FILM_THRESHOLD,
-                1, step_rec_film_genres)
-        return sum(is_polarized) / len(step_rec_film_genres)
-
-    # Plot the percentge of recommended films that are polarized over time
-    log_write("Saving # polarized recommendations plot...")
-    percent_polarized_recs_over_time = [get_num_polarized_recs(x)
-            for x in flattened_rec_film_genres_over_time]
-    plt.plot(percent_polarized_recs_over_time)
-    plt.xlabel("Step")
-    plt.ylabel("% Polarized Film Recommendations")
-    plt.savefig(os.path.join(SAVE_DIR, "num_polarized_recs.png"))
-    plt.close()
-
-    def get_film_polarity(film_genre_vals):
-        max_val = max(film_genre_vals)
-        return 1.0 * sum([max_val - val for val in film_genre_vals]) / \
-                (len(film_genre_vals) - 1)
-
-    def get_avg_film_polarity(step_rec_film_genres):
-        return np.mean(np.apply_along_axis(lambda x: get_film_polarity(x),
-                1, step_rec_film_genres), axis=0)
-
-    # Plot the average polarity of the film recommendations over time
-    log_write("Saving average film polarity plot...")
-    avg_rec_film_polarity_over_time = [get_avg_film_polarity(x)
-            for x in flattened_rec_film_genres_over_time]
-    plt.plot(avg_rec_film_polarity_over_time)
-    plt.xlabel("Step")
-    plt.ylabel("Average Recommended Film Polarity")
-    plt.savefig(os.path.join(SAVE_DIR, "avg_film_polarity.png"))
-    plt.close()
-
-    def get_avg_genre_values(step_rec_film_genres):
-        return np.mean(step_rec_film_genres, axis=0)
-
-    # Plot the distribution of recommended film genres over time
-    log_write("Saving average film genres plot...")
-    avg_genre_values_over_time = np.array([get_avg_genre_values(x)
-            for x in flattened_rec_film_genres_over_time])
-    for genre in range(NUM_GENRES):
-        plt.plot(avg_genre_values_over_time[:,genre], label="Genre %d" % (genre+1))
-    plt.xlabel("Step")
-    plt.ylabel("Average Recommended Film Genre Value")
-    plt.legend()
-    plt.savefig(os.path.join(SAVE_DIR, "avg_film_genre.png"))
-    plt.close()
+#    # Get the flattened recommended film IDs and genres over time
+#    flattened_rec_filmIDs_over_time = np.array([x.flatten()
+#            for x in recommended_filmIDs_over_time])
+#    flattened_rec_film_genres_over_time = np.array([
+#            [films[int(filmID)][:NUM_GENRES] for filmID in step_filmIDs]
+#            for step_filmIDs in flattened_rec_filmIDs_over_time
+#    ])
+#
+#    def get_num_polarized_recs(step_rec_film_genres):
+#        is_polarized = np.apply_along_axis(lambda x: max(x) > POLARIZED_FILM_THRESHOLD,
+#                1, step_rec_film_genres)
+#        return sum(is_polarized) / len(step_rec_film_genres)
+#
+#    # Plot the percentge of recommended films that are polarized over time
+#    log_write("Saving # polarized recommendations plot...")
+#    percent_polarized_recs_over_time = [get_num_polarized_recs(x)
+#            for x in flattened_rec_film_genres_over_time]
+#    plt.plot(percent_polarized_recs_over_time)
+#    plt.xlabel("Step")
+#    plt.ylabel("% Polarized Film Recommendations")
+#    plt.savefig(os.path.join(SAVE_DIR, "num_polarized_recs.png"))
+#    plt.close()
+#
+#    def get_film_polarity(film_genre_vals):
+#        max_val = max(film_genre_vals)
+#        return 1.0 * sum([max_val - val for val in film_genre_vals]) / \
+#                (len(film_genre_vals) - 1)
+#
+#    def get_avg_film_polarity(step_rec_film_genres):
+#        return np.mean(np.apply_along_axis(lambda x: get_film_polarity(x),
+#                1, step_rec_film_genres), axis=0)
+#
+#    # Plot the average polarity of the film recommendations over time
+#    log_write("Saving average film polarity plot...")
+#    avg_rec_film_polarity_over_time = [get_avg_film_polarity(x)
+#            for x in flattened_rec_film_genres_over_time]
+#    plt.plot(avg_rec_film_polarity_over_time)
+#    plt.xlabel("Step")
+#    plt.ylabel("Average Recommended Film Polarity")
+#    plt.savefig(os.path.join(SAVE_DIR, "avg_film_polarity.png"))
+#    plt.close()
+#
+#    def get_avg_genre_values(step_rec_film_genres):
+#        return np.mean(step_rec_film_genres, axis=0)
+#
+#    # Plot the distribution of recommended film genres over time
+#    log_write("Saving average film genres plot...")
+#    avg_genre_values_over_time = np.array([get_avg_genre_values(x)
+#            for x in flattened_rec_film_genres_over_time])
+#    for genre in range(NUM_GENRES):
+#        plt.plot(avg_genre_values_over_time[:,genre], label="Genre %d" % (genre+1))
+#    plt.xlabel("Step")
+#    plt.ylabel("Average Recommended Film Genre Value")
+#    plt.legend()
+#    plt.savefig(os.path.join(SAVE_DIR, "avg_film_genre.png"))
+#    plt.close()
 
     def plot_filter_bubble(final_rec):
         radical1 = np.int_([0,0,0,0,0])
@@ -864,8 +875,10 @@ def run_simulation():
 
     # Plot the final filter bubble data
     log_write("Saving filter bubble plot...")
+    plt.figure(figsize=(4, 3))
     rec = np.int_(recommended_filmIDs_over_time)[-1]
     plot_filter_bubble(rec)
+    plt.tight_layout()
     plt.savefig(os.path.join(SAVE_DIR, "filter_bubble.png"))
     plt.close()
 
